@@ -56,11 +56,10 @@ Tauri 2 + Rust 后端 + React 前端。**免安装版 12 MB，内存占用约 25
 
 | 文件 | 说明 |
 | --- | --- |
-| `AssetBrowser-0.1.0-portable.exe` | 单文件绿色版，双击即用（12 MB） |
+| `AssetBrowser_0.1.0_x64-setup.exe` | 安装版，装进系统并创建开始菜单 / 桌面快捷方式（3.3 MB）**← 推荐** |
+| `AssetBrowser-0.1.0-portable.exe` | 单文件绿色版，双击即用，不写注册表（12 MB） |
 
 需要 **WebView2 运行时**（Win11 自带；Win10 一般也自带，缺失时系统会提示安装）。
-
-想要安装包（装进系统 + 开始菜单快捷方式）：按下面「从源码构建」跑一遍，产物在 `src-tauri/target/release/bundle/nsis/`。
 
 > 介绍页：https://jaymik1947.github.io/asset-browser/
 
