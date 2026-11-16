@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>素材浏览器 · 轻量本地素材浏览器 for Windows</title>
+<meta name="description" content="Tauri 2 + Rust 写的 Windows 本地素材浏览器：上万文件秒开、PSD 缩略图、磁盘缓存、批量预生成。免安装 12 MB。">
+<meta property="og:title" content="素材浏览器 · 轻量本地素材浏览器">
+<meta property="og:description" content="上万文件 60fps 滚动，PSD 直接出图，缓存命中 3ms。12 MB 免安装。">
+<meta property="og:image" content="screenshots/main.png">
+<link rel="icon" href="icon-128.png">
+<style>
+  :root {
+    --bg: #0a0a0c;
+    --panel: rgba(255, 255, 255, 0.035);
+    --line: rgba(255, 255, 255, 0.09);
+    --text: #f2f3f5;
+    --text-2: #a6a9b0;
+    --text-3: #6d7178;
+    --accent: #0a84ff;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- nav ---------- */
+  nav {
+    position: sticky; top: 0; z-index: 20;
+    backdrop-filter: blur(18px) saturate(150%);
+    background: rgba(10, 10, 12, 0.72);
+    border-bottom: 1px solid var(--line);
+  }
+  nav .wrap { display: flex; align-items: center; gap: 14px; height: 58px; }
+  nav .brand { display: flex; align-items: center; gap: 9px; font-weight: 600; letter-spacing: -0.01em; }
+  nav .brand img { width: 22px; height: 22px; border-radius: 6px; }
+  nav .links { margin-left: auto; display: flex; align-items: center; gap: 20px; font-size: 13.5px; color: var(--text-2); }
+  nav .links a:hover { color: var(--text); }
+  @media (max-width: 720px) { nav .links a:not(.gh) { display: none; } }
+
+  /* ---------- hero ---------- */
+  header { position: relative; padding: 74px 0 56px; overflow: hidden; text-align: center; }
+  header::before {
+    content: ""; position: absolute; left: 50%; top: -240px; width: 760px; height: 520px;
+    transform: translateX(-50%);
+    background: radial-gradient(closest-side, rgba(10, 132, 255, 0.28), transparent 72%);
+    filter: blur(20px); pointer-events: none;
+  }
+  .app-icon {
+    width: 88px; height: 88px; border-radius: 20px; margin: 0 auto 22px;
+    display: block; position: relative;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+  h1 { font-size: 40px; line-height: 1.2; margin: 0 0 14px; letter-spacing: -0.03em; font-weight: 600; }
+  .lede { font-size: 17px; color: var(--text-2); max-width: 620px; margin: 0 auto 26px; }
+  .lede b { color: var(--text); font-weight: 500; }
+  .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 18px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 42px; padding: 0 20px; border-radius: 10px;
+    font-size: 14px; font-weight: 500; transition: transform .14s ease, background-color .14s ease, border-color .14s;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn.primary { background: var(--accent); color: #fff; box-shadow: 0 8px 24px rgba(10, 132, 255, .32); }
+  .btn.primary:hover { background: #2b95ff; }
+  .btn.ghost { border: 1px solid var(--line); color: var(--text); }
+  .btn.ghost:hover { background: rgba(255, 255, 255, .05); }
+  .meta { font-size: 12.5px; color: var(--text-3); }
+  .meta span { margin: 0 7px; }
+
+  /* ---------- hero shot ---------- */
+  .shot {
+    margin: 42px auto 0; max-width: 960px; border-radius: 12px; overflow: hidden;
+    border: 1px solid var(--line);
+    box-shadow: 0 30px 90px rgba(0, 0, 0, .65);
+    background: #111;
+  }
+  .shot img { display: block; width: 100%; height: auto; }
+
+  /* ---------- sections ---------- */
+  section { padding: 60px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: 24px; margin: 0 0 8px; letter-spacing: -0.02em; font-weight: 600; }
+  .sub { color: var(--text-2); margin: 0 0 30px; font-size: 14.5px; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 860px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+  .card {
+    padding: 18px 18px 16px; border-radius: var(--radius);
+    background: var(--panel); border: 1px solid var(--line);
+    transition: background-color .16s, border-color .16s;
+  }
+  .card:hover { background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .16); }
+  .card h3 { margin: 0 0 6px; font-size: 14.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .card p { margin: 0; font-size: 13px; color: var(--text-2); line-height: 1.6; }
+  .ico { width: 26px; height: 26px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 7px; background: rgba(10, 132, 255, .16); color: #6fb6ff; }
+  .ico svg { width: 15px; height: 15px; }
+
+  /* ---------- stats ---------- */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 6px; }
+  @media (max-width: 760px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+  .stat { padding: 20px 18px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--line); }
+  .stat b { display: block; font-size: 26px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 12.5px; color: var(--text-3); }
+
+  /* ---------- code ---------- */
+  pre {
+    margin: 0; padding: 16px 18px; border-radius: 12px; overflow-x: auto;
+    background: #101013; border: 1px solid var(--line);
+    font-family: "Cascadia Code", Consolas, "Courier New", monospace;
+    font-size: 13px; line-height: 1.7; color: #d5d8dd;
+  }
+  pre .c { color: #6b7280; }
+  pre .k { color: #7cc0ff; }
+  .two { display: grid; grid-template-columns: 1.05fr .95fr; gap: 20px; align-items: start; }
+  @media (max-width: 780px) { .two { grid-template-columns: 1fr; } }
+  .two img { width: 100%; border-radius: 12px; border: 1px solid var(--line); display: block; }
+  .note { font-size: 12.5px; color: var(--text-3); margin-top: 10px; }
+
+  ul.clean { margin: 0; padding-left: 18px; color: var(--text-2); font-size: 14px; }
+  ul.clean li { margin-bottom: 6px; }
+
+  footer { padding: 40px 0 60px; border-top: 1px solid var(--line); color: var(--text-3); font-size: 12.5px; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  footer a:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top">
+      <img src="icon-128.png" alt="">
+      素材浏览器
+    </a>
+    <div class="links">
+      <a href="#features">功能</a>
+      <a href="#perf">性能</a>
+      <a href="#build">构建</a>
+      <a href="#ai">用 AI 改</a>
+      <a class="gh" href="https://github.com/jaymik1947/asset-browser">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
+<header id="top">
+  <div class="wrap">
+    <img class="app-icon" src="icon-128.png" alt="素材浏览器">
+    <h1>设计素材，打开就能看</h1>
+    <p class="lede">
+      Windows 上的本地素材浏览器。<b>不导入、不索引、不改你的文件</b>，
+      直接读文件夹：<b>上万文件 60fps 滚动，PSD 直接出图，缓存命中 3ms</b>。
+    </p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/jaymik1947/asset-browser/releases/latest">下载免安装版</a>
+      <a class="btn ghost" href="https://github.com/jaymik1947/asset-browser">查看源码</a>
+    </div>
+    <div class="meta">
+      Windows 10 / 11<span>·</span>免安装 12 MB<span>·</span>MIT 开源<span>·</span>不联网
+    </div>
+
+    <div class="shot">
+      <img src="screenshots/main.png" alt="素材浏览器主界面">
+    </div>
+  </div>
+</header>
+
+<section id="why">
+  <div class="wrap">
+    <h2>为什么不用资源管理器 / 素材管理软件</h2>
+    <p class="sub">它们各自缺一块，这个工具补的正是那一块。</p>
+    <div class="grid">
+      <div class="card">
+        <h3><span class="ico"><svg viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.6" stroke="currentColor" stroke-width="1.4"/><path d="M5 6.5h6M5 9.5h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>资源管理器看不到内容</h3>
+        <p>PSD、AI、RAW 只有图标。这里直接解码合成图或内嵌缩略图，一眼分得清是哪张。</p>
+      </div>
+      <div class="card">
+        <h3><span class="ico"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.6" stroke="currentColor" stroke-width="1.4"/><path d="M8 4.8V8l2.2 1.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>专业 DAM 太重</h3>
+        <p>要先建库、导入、等索引，动辄几百兆内存。这里零导入，打开文件夹就开始浏览。</p>
+      </div>
+      <div class="card">
+        <h3><span class="ico"><svg viewBox="0 0 16 16" fill="none"><path d="M3 12.5V7a5 5 0 0 1 10 0v5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><rect x="2" y="9" width="2.6" height="4.4" rx="1.1" fill="currentColor"/><rect x="11.4" y="9" width="2.6" height="4.4" rx="1.1" fill="currentColor"/></svg></span>只读，绝不碰文件</h3>
+        <p>不写入、不改名、不移动。删掉这个软件，你的素材目录跟没装过一样。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <h2>功能</h2>
+    <p class="sub">都是为「快速找到那张图」服务的。</p>
+    <div class="grid">
+      <div class="card">
+        <h3><span class="ico"><svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2.5" width="5" height="5" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="9" y="2.5" width="5" height="5" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="2" y="9" width="5" height="5" rx="1.2" stroke="currentColor" stroke-width="1.4"/><rect x="9" y="9" width="5" height="5" rx="1.2" stroke="currentColor" stroke-width="1.4"/></svg></span>虚拟滚动</h3>
+        <p>只渲染可见区域。1.2 万个文件连续快速滚动稳定 60fps，缩略图边滚边出。</p>
+      </div>
+      <div class="card">
+        <h3><span class="ico"><svg viewBox="0 0 16 16" fill="none"><path d="M2.5 4.5h4l1.2 1.6h5.8v6.4a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V4.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>PSD 双通道解码</h3>
+        <p>优先读内嵌缩略图（3ms）；没有就解合成图，支持 RLE / raw、RGB / CMYK / 灰度（30–70ms）。</p>
+      </div>
+      <div class="card">
+        <h3><span class="ico"><svg viewBox="0 0 16 16" fill="none"><ellipse cx="8" cy="4.4" rx="5.4" ry="2.2" stroke="currentColor" stroke-width="1.4"/><path d="M2.6 4.4v7.2c0 1.2 2.4 2.2 5.4 2.2s5.4-1 5.4-2.2V4.4" stroke="currentColor" stroke-width="1.4"/></svg></span>两级缓存</h3>
+        <p>内存 LRU + SQLite（WAL）。第二次打开同一目录基本瞬间出图，命中约 3ms。</p>
+      </div>
+      <div class="card">
+        <h3><span class="ico"><svg viewBox="0 0 16 16" fill="none"><path d="M8 2.2v8.4M8 10.6 5 7.6M8 10.6l3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M2.6 12.4h10.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>批量预生成</h3>
+        <p>勾选收藏夹，1–16 并发提前生成缩略图。可暂停/继续/停止，实时显示速率和剩余时间。</p>
+      </div>
+      <div class="card">
+        <h3><span class="ico"><svg viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.2" stroke="currentColor" stroke-width="1.4"/><path d="m10.4 10.4 3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>筛得比找得快</h3>
+        <p>后缀筛选带数量统计、文件名/文件夹名搜索、修改时间区间、自定义隐藏后缀。</p>
+      </div>
+      <div class="card">
+        <h3><span class="ico"><svg viewBox="0 0 16 16" fill="none"><path d="M3.4 13.4V2.6l9 2.2-9 2.2" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span>顺手接上工作流</h3>
+        <p>右键在 Photoshop 中打开、在资源管理器定位；拖文件夹或快捷方式进窗口即可加入侧栏。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="perf">
+  <div class="wrap">
+    <h2>性能不是感觉，是数字</h2>
+    <p class="sub">测试环境：Ryzen 7 3700X（8 核 16 线程）、24 GB、SATA SSD、12574 个文件的真实素材库。</p>
+    <div class="stats">
+      <div class="stat"><b>60 fps</b><span>1.2 万文件快速滚动</span></div>
+      <div class="stat"><b>97 秒</b><span>全库 1.2 万张预生成</span></div>
+      <div class="stat"><b>3 ms</b><span>缓存命中读取</span></div>
+      <div class="stat"><b>12 MB</b><span>免安装版体积</span></div>
+    </div>
+    <p class="note">对比：同功能的 Electron 版本 188 MB / 内存约 150 MB。Rust 后端 + 系统 WebView 的差距。</p>
+  </div>
+</section>
+
+<section id="build">
+  <div class="wrap">
+    <h2>从源码构建</h2>
+    <p class="sub">需要 Windows 10/11、Node 20+、Rust stable（MSVC 工具链）、WebView2 运行时。</p>
+    <div class="two">
+      <div>
+        <pre><span class="c">:: 1. 装依赖</span>
+npm install
+
+<span class="c">:: 2. 开发模式</span>
+npm run tauri dev
+
+<span class="c">:: 3. 出包</span>
+npm run tauri build</pre>
+        <p class="note">产物：<code>src-tauri/target/release/asset-browser.exe</code> 与 <code>bundle/nsis/*.exe</code></p>
+      </div>
+      <div>
+        <img src="screenshots/settings.png" alt="设置面板">
+        <p class="note">缓存目录、上限、预生成并发、托盘、Photoshop 路径、隐藏后缀，都在设置里。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="ai">
+  <div class="wrap">
+    <h2>用 AI 改它</h2>
+    <p class="sub">仓库里带了一份写给 AI 助手的 <code>AGENTS.md</code>，把人话需求变成代码这件事不该靠运气。</p>
+    <div class="two">
+      <div>
+        <ul class="clean">
+          <li><b>模块职责表</b>：改筛选去哪个文件、加命令要动哪几处，一眼能看到。</li>
+          <li><b>7 条硬约束</b>：前端产物是编译期嵌进 exe 的、缓存 key 含 <code>PIPELINE_VER</code>、淘汰不能每次全表 SUM……都是踩过的坑。</li>
+          <li><b>验证方法</b>：怎么用 Playwright 连上真实窗口、怎么在不污染缓存的情况下跑基准。</li>
+          <li><b>二进制格式说明</b>：.lnk 的字段偏移、GBK 编码处理，省得助手再造一遍轮子。</li>
+        </ul>
+        <p class="note">把仓库丢给 Claude Code / Cursor / Codex，让它先读 AGENTS.md，再提需求。</p>
+      </div>
+      <div>
+        <pre><span class="c"># 典型用法</span>
+<span class="k">你：</span>帮我在右键菜单里加一个「复制文件名」
+
+<span class="k">助手：</span><span class="c">读 AGENTS.md →</span>
+  App.tsx 的 menuItems 数组加一项
+  <span class="c">→ 复用 copyPath，改成只复制 name</span>
+  <span class="c">→ npx tsc --noEmit 验证</span>
+  <span class="c">→ npm run tauri build 重新嵌入</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="limits">
+  <div class="wrap">
+    <h2>已知限制</h2>
+    <div class="grid">
+      <div class="card"><h3>仅 Windows</h3><p>托盘、快捷方式解析、系统代码页转换都用了 Win32 API。</p></div>
+      <div class="card"><h3>部分格式没缩略图</h3><p>.ai / .indd / .c4d / .max 没有可用解码器，显示灰色徽标。</p></div>
+      <div class="card"><h3>极少数 PSD 是白图</h3><p>保存时隐藏了所有图层，合成图本身就空白，任何软件都提不出来。</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>MIT License · 2026 jaymik1947</div>
+    <div>
+      <a href="https://github.com/jaymik1947/asset-browser">源码</a> ·
+      <a href="https://github.com/jaymik1947/asset-browser/releases">下载</a> ·
+      <a href="https://github.com/jaymik1947/asset-browser/issues">反馈</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

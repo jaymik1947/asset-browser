@@ -1,0 +1,31 @@
+# 依赖
+node_modules/
+src-tauri/target/
+
+# 构建产物
+dist/
+*.exe
+*.msi
+
+# 本地测试产物（截图、临时文件）
+/*.png
+/*.jpg
+/*.txt
+!docs/**/*.png
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+
+# 图标生成中间文件
+/icon-square.png
+/icon-source.png
+
+# 早期 Electron 实验实现，不属于当前产品
+/electron/
+*.bak
+.bookmarks-backup.json
+/src-tauri/gen/
