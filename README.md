@@ -4,6 +4,9 @@
 
 Tauri 2 + Rust 后端 + React 前端。**免安装版 12 MB，内存占用约 25 MB**（对比 Electron 同功能约 190 MB / 150 MB）。
 
+[![build](https://github.com/jaymik1947/asset-browser/actions/workflows/build.yml/badge.svg)](https://github.com/jaymik1947/asset-browser/actions/workflows/build.yml)
+[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 <p align="center">
   <img src="docs/screenshots/main.png" width="880" alt="主界面">
 </p>
